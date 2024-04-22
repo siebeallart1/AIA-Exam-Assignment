@@ -4,6 +4,7 @@ library(PerformanceAnalytics)
 library(PortfolioAnalytics)
 library(stargazer)
 library(TTR)
+library(stats)
 data_funds <- read_xlsx("data_funds.xlsx", sheet = "Sheet 1")
 SocGen <- read_xlsx("data_funds.xlsx", sheet = "SocGen")
 # View(data_funds)
@@ -26,30 +27,33 @@ date.end   <- as.Date("2023-12-29")
 returns <- CalculateReturns(data_funds) # compounded daily returns of all assets
 returns <- returns[(-1),] # removal of the first row 
 returns <- as.xts(returns)
+# 1: Returns of the equally weighted mutual fund index
 mutualfundreturns <- returns[,3:12]
 w.mutualfundindex <- rep(1/length(mutualfund.index),length(mutualfund.index))
 returns.mutualfundindex <- Return.portfolio(mutualfundreturns, w.mutualfundindex)
-#returns.mutualfundindex <- as.xts(returns.mutualfundindex)
+# 2: Returns of the S&P500
 returns.sp500 <- returns[,2]
-#returns.sp500 <- as.xts(returns.sp500)
+# 3: Returns of general index for CTA/managed futures
 returns.CTA <- returns[,13]
-#returns.CTA <- as.xts(returns.CTA)
+# 4: Returns of trend following CTAs 
 returns.trend <- returns[,14]
-#returns.trend <- as.xts(returns.trend)
-overall.returns <- merge(returns.sp500, returns.mutualfundindex, returns.CTA, returns.trend)
 
+# Combining the four different strategies
+overall.returns <- merge(returns.sp500, returns.mutualfundindex, returns.CTA, returns.trend)
 colnames(overall.returns) <- c("S&P500", "Equally Weighted Mutual Fund Index", "CTA Managed Futures", "CTA Trend")
 performance <- table.AnnualizedReturns(overall.returns)
 skew <- apply(overall.returns, 2, skewness)
 kurt <- apply(overall.returns, 2, kurtosis)
 evaluation <- rbind(performance, Skewness = skew, Kurtosis = kurt)
 stargazer(evaluation, type = "text", summary = FALSE)
+chart.CumReturns(overall.returns, wealth.index = TRUE, legend.loc = "topleft", colorset = c("darkgreen", "red", "blue", "gold"))
 
 # # Plot monthly returns
 # plot.xts(returns, legend.loc = "topleft")
 # # Plot monthly closing prices 
 # plot.xts(as.xts(data_funds), legend.loc = "topleft" )
 # plot.xts(as.xts(data_funds),legend.loc = "bottomleft" , ylim=c(0,500))
+
 
 
 # ----------------------------------------------------------QUESTION 2---------------------------------------------------------------------------
@@ -71,10 +75,42 @@ risk_free11   <-(0.02565+0.02031)/2  #average risk free rate from 31 dec. 2022 t
 risk_free<-sum(risk_free1,risk_free2,risk_free3,risk_free4,risk_free5,risk_free6,risk_free7,risk_free8, risk_free9,risk_free10, risk_free11) /11 #average risk free rate from 2012-12-31 till 2023-12-31
 #Market timing abilities
 
+# with MarketTiming
 TM <- MarketTiming(as.xts(returns),as.xts(returns)[,2], risk_free, method = "TM")
 # View(TM)
 HM <- MarketTiming(as.xts(returns),as.xts(returns)[,2], risk_free, method = "HM")
 # View(HM)
+
+#manually
+#Portfolio excess return
+excess.return.mutualfunds    <- returns.mutualfundindex - risk_free
+excess.return.market         <- returns.sp500 - risk_free
+excess.return.market.squared <- excess.return.market^2                 # Need the squared excess market return for Treynor and Mazuy
+excess.return.CTA            <- returns.CTA - risk_free
+excess.return.trend          <- returns.trend - risk_free
+HM.second.term               <- pmax(0, -excess.return.market)          # Gain an extra return when the market is going down
+
+TM.regression.mutualfund <- lm(excess.return.mutualfunds ~ excess.return.market + excess.return.market.squared, data = returns)
+TM.regression.CTA        <- lm(excess.return.CTA ~ excess.return.market + excess.return.market.squared, data = returns)
+TM.regression.trend      <- lm(excess.return.trend ~ excess.return.market + excess.return.market.squared, data = returns)
+# summary(TM.regression.mutualfund)
+# summary(TM.regression.CTA)
+# summary(TM.regression.trend)
+file.path <- "Treynor-Mazuy_Test.html"
+stargazer(TM.regression.mutualfund, TM.regression.CTA, TM.regression.trend, title = "Treynor-Mazuy", 
+          column.labels = c("HM Mutual Fund", "HM CTA", "HM Trend"), 
+          out = file.path, header = FALSE, style = "default")
+
+HM.regression.mutualfund <- lm(excess.return.mutualfunds ~ excess.return.market + HM.second.term, data = returns)
+HM.regression.CTA        <- lm(excess.return.CTA ~ excess.return.market + HM.second.term, data = returns)
+HM.regression.trend      <- lm(excess.return.trend ~ excess.return.market + HM.second.term, data = returns)
+# summary(HM.regression.mutualfund)
+# summary(HM.regression.CTA)
+# summary(HM.regression.trend)
+file.path <- "Merton-Henriksson_Test.html"
+stargazer(TM.regression.mutualfund, TM.regression.CTA, TM.regression.trend, title = "Merton-Henriksson", 
+          column.labels = c("HM Mutual Fund", "HM CTA", "HM Trend"), 
+          out = file.path, header = FALSE, style = "default")
 
 
 # ----------------------------------------------------------QUESTION 3---------------------------------------------------------------------------
