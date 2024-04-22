@@ -79,21 +79,73 @@ HM <- MarketTiming(as.xts(returns),as.xts(returns)[,2], risk_free, method = "HM"
 
 # ----------------------------------------------------------QUESTION 3---------------------------------------------------------------------------
 # Treynor-Mazuy and Henrikkson-Merton test for market timing ability when using dummy variable that is 0 for the six largest price declines during the sample period
+MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
 
-market.crashes <- as.Date(c("2015-08-19", "2015-08-26", 
-                            "2015-12-30", "2016-02-11", 
-                            "2018-01-29", "2018-04-02", 
-                            "2018-10-04", "2018-12-24", 
-                            "2020-02-20", "2020-03-23", 
-                            "2021-12-28", "2022-10-12"))
-dummy.variable <- ifelse(index(overall.returns) %in% market.crashes, 1, 0)
-# MarketTiming(Asset Returns, Benchmark Asset Return (S&P500), Risk Free Rate, Method: Treynor-Mazuy or Henriksson-Merton)
-TM.dummy <- MarketTiming(as.xts(returns), as.xts(returns)[, 2], risk_free, method = "TM", marketTimingIndex = dummy.variable)
-HM.dummy <- MarketTiming(as.xts(returns),as.xts(returns)[,2], risk_free, method = "HM", marketTimingIndex = dummy.variable)
-print(TM)
-print(HM)
-print(TM.dummy)
-print(HM.dummy)
+{ # @author Andrii Babii, Peter Carl
+  
+  # FUNCTION
+  
+  Ra = checkData(Ra)
+  Rb = checkData(Rb)
+  if (!is.null(dim(Rf))) 
+    Rf = checkData(Rf)
+  Ra.ncols = NCOL(Ra)
+  Rb.ncols = NCOL(Rb)
+  pairs = expand.grid(1:Ra.ncols, 1)
+  method = method[1]
+  xRa = Return.excess(Ra, Rf)
+  xRb = Return.excess(Rb, Rf)
+  
+  mt <- function (xRa, xRb)
+  {
+    switch(method,
+           "HM" = { 
+             intervals <- list(
+               c("2015-08-19", "2015-08-26"),
+               c("2015-12-30", "2016-02-11"),
+               c("2018-01-29", "2018-04-02"),
+               c("2018-10-04", "2018-12-24"),
+               c("2020-02-20", "2020-03-23"),
+               c("2021-12-28", "2022-10-12")
+             )
+             
+             for (i in 1:length(intervals)) {
+               start_date <- intervals[[i]][1]
+               end_date <- intervals[[i]][2]
+               if (any(xRb[,1] >= start_date & xRb[,1] <= end_date)) {
+                 xRb[xRb[,1] >= start_date & xRb[,1] <= end_date, -1] <- 0
+               }
+             }
+             S = xRb > 0
+           },
+           "TM" = { S = xRb }
+    )
+    
+    
+    R = merge(xRa, xRb, xRb*S)
+    R.df = as.data.frame(R)
+    model = lm(R.df[, 1] ~ 1 + ., data = R.df[, -1])
+    return(coef(model))
+  }
+  
+  result = apply(pairs, 1, FUN = function(n, xRa, xRb) 
+    mt(xRa[, n[1]], xRb[, 1]), xRa = xRa, xRb = xRb)
+  result = t(result)
+  
+  if (ncol(Rb) > 1){
+    for (i in 2:ncol(xRb)){
+      res = apply(pairs, 1, FUN = function(n, xRa, xRb) 
+        mt(xRa[, n[1]], xRb[, i]), xRa = xRa, xRb = xRb)
+      res = t(res)
+      result = rbind(result, res)
+    }
+  }
+  
+  rownames(result) = paste(rep(colnames(Ra), ncol(Rb)), "to",  rep(colnames(Rb), each = ncol(Ra)))
+  colnames(result) = c("Alpha", "Beta", "Gamma")
+  return(result)
+}
+
 
 # ----------------------------------------------------------QUESTION 4---------------------------------------------------------------------------
 # Dual Moving Average Crossover Strategy, MA of 20 and 100 days 
