@@ -186,7 +186,7 @@ MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
 # ----------------------------------------------------------QUESTION 4---------------------------------------------------------------------------
 # Dual Moving Average Crossover Strategy, MA of 20 and 100 days 
 # Calculate the moving averages
-MA.20 <- SMA(returns, n = 20)
-MA.100 <- SMA(returns, n = 100)
-signals <- ifelse(MA.20 > MA.100, 1, -1) # Buy signal when MA-20 > MA-100, sell signal otherwise 
+#MA.20 <- SMA(returns, n = 20)
+#MA.100 <- SMA(returns, n = 100)
+#signals <- ifelse(MA.20 > MA.100, 1, -1) # Buy signal when MA-20 > MA-100, sell signal otherwise 
 
