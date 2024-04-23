@@ -21,7 +21,9 @@ length(mutualfund.index)
 # Set the dates for which we want to compare the returns
 date.start <- as.Date("2012-12-31")
 date.end   <- as.Date("2023-12-29")
-
+# -----------------------------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------PART 1-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------QUESTION 1---------------------------------------------------------------------------
 # Calculate the returns of an equally weighted mutual fund index, consisting of the ten mutual funds. 
 # Compare the performance of the S&P500, the self-constructed mutual fund index and the two CTA indices.
@@ -247,6 +249,26 @@ print(strategy.performance)
 performanceSP500 <- table.AnnualizedReturns(clean_data)
 print(performanceSP500)
 
+
+# -----------------------------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------PART 2-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------QUESTION 1---------------------------------------------------------------------------
+# Calculate for the European stock market the risk adjusted performance of cross sectional momentum strategy following the approach by Jegadeesh and Titman (1993)
+# Transaction costs
+Europe.portfolio <- read_xlsx("data_momentum.xlsx", sheet = "Europe portfolio")
+EU.returns <- CalculateReturns(Europe.portfolio)
+EU.returns <- EU.returns[(-1),]
+formation.period.returns <- rollapplyr(EU.returns, width = 126, FUN = function(x) prod(1 + x) - 1, by.column = TRUE, align = "right")
+formation.period.ranks <- apply(formation.period.returns, 2, rank)
+winners <- colnames(formation.period.ranks)[formation.period.ranks <= 10]
+losers <- colnames(formation.period.ranks)[formation.period.ranks >= (ncol(formation.period.ranks) - 9)]
+
+winner.portfolio <- EU.returns[, winners]
+loser.portfolio <- EU.returns[, losers]
+transaction.cost <- 0.005
+winner.portfolio <- winner.portfolio * (1 - transaction.cost)
+loser.portfolio <- loser.portfolio * (1 + transaction.cost)
 
 
 
