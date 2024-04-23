@@ -98,21 +98,24 @@ HM.second.term               <- pmax(0, excess.return.market)          # Gain an
 TM.regression.mutualfund <- lm(excess.return.mutualfunds ~ excess.return.market + excess.return.market.squared, data = returns)
 TM.regression.CTA        <- lm(excess.return.CTA ~ excess.return.market + excess.return.market.squared, data = returns)
 TM.regression.trend      <- lm(excess.return.trend ~ excess.return.market + excess.return.market.squared, data = returns)
-regressions.TM           <- list(TM.regression.mutualfund, TM.regression.CTA, TM.regression.trend)
-stargazerRegression(regressions.TM, fileDirectory = getwd(), fileName = "Trenyor and Mazuy Test")
 # summary(TM.regression.mutualfund)
 # summary(TM.regression.CTA)
 # summary(TM.regression.trend)
-
+file.path <- "Treynor-Mazuy_Test.html"
+stargazer(TM.regression.mutualfund, TM.regression.CTA, TM.regression.trend, title = "Treynor-Mazuy", 
+          column.labels = c("HM Mutual Fund", "HM CTA", "HM Trend"), 
+          out = file.path, header = FALSE, style = "default")
 
 HM.regression.mutualfund <- lm(excess.return.mutualfunds ~ excess.return.market + HM.second.term, data = returns)
 HM.regression.CTA        <- lm(excess.return.CTA ~ excess.return.market + HM.second.term, data = returns)
 HM.regression.trend      <- lm(excess.return.trend ~ excess.return.market + HM.second.term, data = returns)
-regressions.HM           <- list(HM.regression.mutualfund, HM.regression.CTA, HM.regression.trend)
-stargazerRegression(regressions.HM, fileDirectory = getwd(), fileName = "Henriksson and Merton Test")
 # summary(HM.regression.mutualfund)
 # summary(HM.regression.CTA)
 # summary(HM.regression.trend)
+file.path <- "Merton-Henriksson_Test.html"
+stargazer(TM.regression.mutualfund, TM.regression.CTA, TM.regression.trend, title = "Merton-Henriksson", 
+          column.labels = c("HM Mutual Fund", "HM CTA", "HM Trend"), 
+          out = file.path, header = FALSE, style = "default")
 
 # Define the intervals for the largest price declines/crashes on the S&P500 index
 market.crashes <- list(
@@ -152,8 +155,11 @@ stargazerRegression(regressions.HM.dummy, fileDirectory = getwd(), fileName = "H
 
 
 MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
+
 { # @author Andrii Babii, Peter Carl
+  
   # FUNCTION
+  
   Ra = checkData(Ra)
   Rb = checkData(Rb)
   if (!is.null(dim(Rf))) 
@@ -164,6 +170,7 @@ MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
   method = method[1]
   xRa = Return.excess(Ra, Rf)
   xRb = Return.excess(Rb, Rf)
+  
   mt <- function (xRa, xRb)
   {
     switch(method,
@@ -176,6 +183,7 @@ MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
                c("2020-02-20", "2020-03-23"),
                c("2021-12-28", "2022-10-12")
              )
+             
              for (i in 1:length(intervals)) {
                start_date <- intervals[[i]][1]
                end_date <- intervals[[i]][2]
@@ -187,14 +195,18 @@ MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
            },
            "TM" = { S = xRb }
     )
+    
+    
     R = merge(xRa, xRb, xRb*S)
     R.df = as.data.frame(R)
     model = lm(R.df[, 1] ~ 1 + ., data = R.df[, -1])
     return(coef(model))
   }
+  
   result = apply(pairs, 1, FUN = function(n, xRa, xRb) 
     mt(xRa[, n[1]], xRb[, 1]), xRa = xRa, xRb = xRb)
   result = t(result)
+  
   if (ncol(Rb) > 1){
     for (i in 2:ncol(xRb)){
       res = apply(pairs, 1, FUN = function(n, xRa, xRb) 
@@ -203,13 +215,14 @@ MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
       result = rbind(result, res)
     }
   }
+  
   rownames(result) = paste(rep(colnames(Ra), ncol(Rb)), "to",  rep(colnames(Rb), each = ncol(Ra)))
   colnames(result) = c("Alpha", "Beta", "Gamma")
   return(result)
 }
 merged.returns <- merge(returns.trend,returns.CTA,returns.mutualfundindex)
-TM.adapted <- MarketTimingAdapted(merged.returns,as.xts(returns)[,2], risk_free, method = "TM")
-View(TM.adapted)
+TM.adapted <- MarketTimingAdapted(merged.returns, as.xts(returns)[,2], risk_free, method = "TM")
+# View(TM.adapted)
 HM.adapted <- MarketTimingAdapted(merged.returns,as.xts(returns)[,2], risk_free, method = "HM")
 View(HM.adapted)
 
