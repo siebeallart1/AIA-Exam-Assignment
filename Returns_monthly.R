@@ -7,6 +7,7 @@ library(TTR)
 library(stats)
 install.packages("sandwich")
 install.packages("EconometricsUGent")
+library(EconometricsUGent)
 data_funds <- read_xlsx("data_funds.xlsx", sheet = "Sheet 1")
 SocGen <- read_xlsx("data_funds.xlsx", sheet = "SocGen")
 # View(data_funds)
@@ -183,7 +184,10 @@ MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
   colnames(result) = c("Alpha", "Beta", "Gamma")
   return(result)
 }
-
+TM.adapted <- MarketTimingAdapted(as.xts(returns),as.xts(returns)[,2], risk_free, method = "TM")
+# View(TM.adapted)
+HM.adapted <- MarketTimingAdapted(as.xts(returns),as.xts(returns)[,2], risk_free, method = "HM")
+# View(HM.adapted)
 
 # ----------------------------------------------------------QUESTION 4---------------------------------------------------------------------------
 # Dual Moving Average Crossover Strategy, MA of 20 and 100 days 
@@ -191,4 +195,21 @@ MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
 #MA.20 <- SMA(returns, n = 20)
 #MA.100 <- SMA(returns, n = 100)
 #signals <- ifelse(MA.20 > MA.100, 1, -1) # Buy signal when MA-20 > MA-100, sell signal otherwise 
+# Dual Moving Average Crossover Strategy, MA of 20 and 100 days 
+# Calculate the moving averages
+sp500.index <- as.matrix(data_funds[,2])
+MA.20 <- SMA(sp500.index, n = 20)
+MA.100 <- SMA(sp500.index, n = 100)
+signals <- ifelse(MA.20 > MA.100, 1, -1)
+signals <- signals[-1]
+clean_data <- returns.sp500[-c(1:98), ]
+strategy.returns <- signals * returns.sp500
+na.omit(strategy.returns)
+strategy.performance <- table.AnnualizedReturns(strategy.returns)
+print(strategy.performance)
+performanceSP500 <- table.AnnualizedReturns(clean_data)
+print(performanceSP500)
+
+
+
 
