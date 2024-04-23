@@ -80,9 +80,9 @@ risk_free<-sum(risk_free1,risk_free2,risk_free3,risk_free4,risk_free5,risk_free6
 
 # with MarketTiming
 TM <- MarketTiming(as.xts(returns),as.xts(returns)[,2], risk_free, method = "TM")
-# View(TM)
+View(TM)
 HM <- MarketTiming(as.xts(returns),as.xts(returns)[,2], risk_free, method = "HM")
-# View(HM)
+View(HM)
 
 #manually
 #Portfolio excess return
@@ -184,10 +184,11 @@ MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
   colnames(result) = c("Alpha", "Beta", "Gamma")
   return(result)
 }
-TM.adapted <- MarketTimingAdapted(as.xts(returns),as.xts(returns)[,2], risk_free, method = "TM")
-# View(TM.adapted)
-HM.adapted <- MarketTimingAdapted(as.xts(returns),as.xts(returns)[,2], risk_free, method = "HM")
-# View(HM.adapted)
+merged.returns <- merge(returns.trend,returns.CTA,returns.mutualfundindex)
+TM.adapted <- MarketTimingAdapted(merged.returns,as.xts(returns)[,2], risk_free, method = "TM")
+View(TM.adapted)
+HM.adapted <- MarketTimingAdapted(merged.returns,as.xts(returns)[,2], risk_free, method = "HM")
+View(HM.adapted)
 
 # ----------------------------------------------------------QUESTION 4---------------------------------------------------------------------------
 # Dual Moving Average Crossover Strategy, MA of 20 and 100 days 
