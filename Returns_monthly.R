@@ -30,6 +30,7 @@ date.end   <- as.Date("2023-12-29")
 returns <- CalculateReturns(data_funds) # compounded daily returns of all assets
 returns <- returns[(-1),] # removal of the first row 
 returns <- as.xts(returns)
+length(returns)
 # 1: Returns of the equally weighted mutual fund index
 mutualfundreturns <- returns[,3:12]
 w.mutualfundindex <- rep(1/length(mutualfund.index),length(mutualfund.index))
@@ -48,6 +49,7 @@ performance <- table.AnnualizedReturns(overall.returns)
 skew <- apply(overall.returns, 2, skewness)
 kurt <- apply(overall.returns, 2, kurtosis)
 evaluation <- rbind(performance, Skewness = skew, Kurtosis = kurt)
+stargazerTable(evaluation, fileDirectory = getwd(), fileName = "Strategies Evaluation")
 stargazer(evaluation, type = "text", summary = FALSE)
 chart.CumReturns(overall.returns, wealth.index = TRUE, legend.loc = "topleft", colorset = c("darkgreen", "red", "blue", "gold"))
 
@@ -91,7 +93,7 @@ excess.return.market         <- returns.sp500 - risk_free
 excess.return.market.squared <- excess.return.market^2                 # Need the squared excess market return for Treynor and Mazuy
 excess.return.CTA            <- returns.CTA - risk_free
 excess.return.trend          <- returns.trend - risk_free
-HM.second.term               <- pmax(0, -excess.return.market)          # Gain an extra return when the market is going down
+HM.second.term               <- pmax(0, excess.return.market)          # Gain an extra return when the market is going down
 
 TM.regression.mutualfund <- lm(excess.return.mutualfunds ~ excess.return.market + excess.return.market.squared, data = returns)
 TM.regression.CTA        <- lm(excess.return.CTA ~ excess.return.market + excess.return.market.squared, data = returns)
@@ -112,9 +114,43 @@ stargazerRegression(regressions.HM, fileDirectory = getwd(), fileName = "Henriks
 # summary(HM.regression.CTA)
 # summary(HM.regression.trend)
 
+# Define the intervals for the largest price declines/crashes on the S&P500 index
+market.crashes <- list(
+  crash1 = as.Date(c("2015-08-19", "2015-08-26")),
+  crash2 = as.Date(c("2015-12-30", "2016-02-11")),
+  crash3 = as.Date(c("2018-01-29", "2018-04-02")),
+  crash4 = as.Date(c("2018-10-04", "2018-12-24")),
+  crash5 = as.Date(c("2020-02-20", "2020-03-23")),
+  crash6 = as.Date(c("2021-12-28", "2022-10-12"))
+)
+# Function to check if a date falls within any of the defined intervals
+date.in.crashes <- function(date, intervals) {
+  any(sapply(intervals, function(interval) date >= interval[1] & date <= interval[2]))
+}
+# Create a dummy variable based on the crashes intervals
+# Initialize an empty vector to store dummy variable values
+dummy <- numeric(length(returns.sp500))
+# Loop through each observation in the S&P500 returns
+for (i in 1:length(returns.sp500)) {
+  # Check if the date of the ith observation falls within any crash interval
+  if (date.in.crashes(index(returns.sp500)[i], market.crashes)) {
+    dummy.variable[i] <- 0  # If it does, set dummy variable to 0
+  } else {
+    dummy.variable[i] <- 1  # Otherwise, set dummy variable to 1
+  }
+}
+View(as.matrix(dummy))
+HM.regression.mutualfund.dummy <- lm(excess.return.mutualfunds ~ excess.return.market + HM.second.term + dummy, data = returns)
+HM.regression.CTA.dummy        <- lm(excess.return.CTA ~ excess.return.market + HM.second.term + dummy, data = returns)
+HM.regression.trend.dummy      <- lm(excess.return.trend ~ excess.return.market + HM.second.term + dummy, data = returns)
+regressions.HM.dummy           <- list(HM.regression.mutualfund.dummy, HM.regression.CTA.dummy, HM.regression.trend.dummy)
+stargazerRegression(regressions.HM.dummy, fileDirectory = getwd(), fileName = "Henriksson and Merton Test - Dummy")
 
 # ----------------------------------------------------------QUESTION 3---------------------------------------------------------------------------
 # Treynor-Mazuy and Henrikkson-Merton test for market timing ability when using dummy variable that is 0 for the six largest price declines during the sample period
+
+
+
 MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
 { # @author Andrii Babii, Peter Carl
   # FUNCTION
