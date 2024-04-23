@@ -128,7 +128,7 @@ MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
   method = method[1]
   xRa = Return.excess(Ra, Rf)
   xRb = Return.excess(Rb, Rf)
-  mt <- function (xRa, xRb)
+  mt <- function (xRa1, xRb1)
   {
     switch(method,
            "HM" = { 
@@ -143,39 +143,27 @@ MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
              for (i in 1:length(intervals)) {
                start_date <- intervals[[i]][1]
                end_date <- intervals[[i]][2]
-               if (any(xRb[,1] >= start_date & xRb[,1] <= end_date)) {
-                 xRb[xRb[,1] >= start_date & xRb[,1] <= end_date, -1] <- 0
+               if (any(xRb1[,1] >= start_date & xRb1[,1] <= end_date)) {
+                 xRb1[xRb1[,1] >= start_date & xRb1[,1] <= end_date, -1] <- 0
                }
              }
-             S = xRb > 0
+             S = xRb1 > 0
            },
-           "TM" = { S = xRb }
+           "TM" = { S = xR1b }
     )
-    R = merge(xRa, xRb, xRb*S)
+    R = merge(xRa1, xRb1, xRb1*S)
     R.df = as.data.frame(R)
     model = lm(R.df[, 1] ~ 1 + ., data = R.df[, -1])
-    return(coef(model))
+    return(model)
   }
-  result = apply(pairs, 1, FUN = function(n, xRa, xRb) 
-    mt(xRa[, n[1]], xRb[, 1]), xRa = xRa, xRb = xRb)
-  result = t(result)
-  if (ncol(Rb) > 1){
-    for (i in 2:ncol(xRb)){
-      res = apply(pairs, 1, FUN = function(n, xRa, xRb) 
-        mt(xRa[, n[1]], xRb[, i]), xRa = xRa, xRb = xRb)
-      res = t(res)
-      result = rbind(result, res)
-    }
-  }
-  rownames(result) = paste(rep(colnames(Ra), ncol(Rb)), "to",  rep(colnames(Rb), each = ncol(Ra)))
-  colnames(result) = c("Alpha", "Beta", "Gamma")
-  return(result)
+  mt(xRa, xRb) 
 }
-merged.returns <- merge(returns.trend,returns.CTA,returns.mutualfundindex)
-TM.adapted <- MarketTimingAdapted(merged.returns,as.xts(returns)[,2], risk_free, method = "TM")
-View(TM.adapted)
-HM.adapted <- MarketTimingAdapted(merged.returns,as.xts(returns)[,2], risk_free, method = "HM")
-View(HM.adapted)
+HM.regression.adapted.mutfund <- MarketTimingAdapted(returns.mutualfundindex,as.xts(returns)[,2], risk_free, method = "HM")
+HM.regression.adapted.CTA <- MarketTimingAdapted(returns.CTA,as.xts(returns)[,2], risk_free, method = "HM")
+HM.regression.adapted.trend <- MarketTimingAdapted(returns.trend,as.xts(returns)[,2], risk_free, method = "HM")
+regressions.HM.adapted  <- list(HM.regression.adapted.mutfund, HM.regression.adapted.CTA, HM.regression.adapted.trend)
+stargazerRegression(regressions.HM.adapted, fileDirectory = getwd(), fileName = "Henriksson and Merton Test")
+
 
 # ----------------------------------------------------------QUESTION 4---------------------------------------------------------------------------
 # Dual Moving Average Crossover Strategy, MA of 20 and 100 days 
