@@ -21,9 +21,7 @@ length(mutualfund.index)
 # Set the dates for which we want to compare the returns
 date.start <- as.Date("2012-12-31")
 date.end   <- as.Date("2023-12-29")
-# -----------------------------------------------------------------------------------------------------------------------------------------------
-# ------------------------------------------------------------PART 1-----------------------------------------------------------------------------
-# -----------------------------------------------------------------------------------------------------------------------------------------------
+
 # ----------------------------------------------------------QUESTION 1---------------------------------------------------------------------------
 # Calculate the returns of an equally weighted mutual fund index, consisting of the ten mutual funds. 
 # Compare the performance of the S&P500, the self-constructed mutual fund index and the two CTA indices.
@@ -32,7 +30,6 @@ date.end   <- as.Date("2023-12-29")
 returns <- CalculateReturns(data_funds) # compounded daily returns of all assets
 returns <- returns[(-1),] # removal of the first row 
 returns <- as.xts(returns)
-length(returns)
 # 1: Returns of the equally weighted mutual fund index
 mutualfundreturns <- returns[,3:12]
 w.mutualfundindex <- rep(1/length(mutualfund.index),length(mutualfund.index))
@@ -51,7 +48,6 @@ performance <- table.AnnualizedReturns(overall.returns)
 skew <- apply(overall.returns, 2, skewness)
 kurt <- apply(overall.returns, 2, kurtosis)
 evaluation <- rbind(performance, Skewness = skew, Kurtosis = kurt)
-stargazerTable(evaluation, fileDirectory = getwd(), fileName = "Strategies Evaluation")
 stargazer(evaluation, type = "text", summary = FALSE)
 chart.CumReturns(overall.returns, wealth.index = TRUE, legend.loc = "topleft", colorset = c("darkgreen", "red", "blue", "gold"))
 
@@ -95,7 +91,7 @@ excess.return.market         <- returns.sp500 - risk_free
 excess.return.market.squared <- excess.return.market^2                 # Need the squared excess market return for Treynor and Mazuy
 excess.return.CTA            <- returns.CTA - risk_free
 excess.return.trend          <- returns.trend - risk_free
-HM.second.term               <- pmax(0, excess.return.market)          # Gain an extra return when the market is going down
+HM.second.term               <- pmax(0, -excess.return.market)          # Gain an extra return when the market is going down
 
 TM.regression.mutualfund <- lm(excess.return.mutualfunds ~ excess.return.market + excess.return.market.squared, data = returns)
 TM.regression.CTA        <- lm(excess.return.CTA ~ excess.return.market + excess.return.market.squared, data = returns)
@@ -119,45 +115,11 @@ stargazer(TM.regression.mutualfund, TM.regression.CTA, TM.regression.trend, titl
           column.labels = c("HM Mutual Fund", "HM CTA", "HM Trend"), 
           out = file.path, header = FALSE, style = "default")
 
-# Define the intervals for the largest price declines/crashes on the S&P500 index
-market.crashes <- list(
-  crash1 = as.Date(c("2015-08-19", "2015-08-26")),
-  crash2 = as.Date(c("2015-12-30", "2016-02-11")),
-  crash3 = as.Date(c("2018-01-29", "2018-04-02")),
-  crash4 = as.Date(c("2018-10-04", "2018-12-24")),
-  crash5 = as.Date(c("2020-02-20", "2020-03-23")),
-  crash6 = as.Date(c("2021-12-28", "2022-10-12"))
-)
-# Function to check if a date falls within any of the defined intervals
-date.in.crashes <- function(date, intervals) {
-  any(sapply(intervals, function(interval) date >= interval[1] & date <= interval[2]))
-}
-# Create a dummy variable based on the crashes intervals
-# Initialize an empty vector to store dummy variable values
-dummy <- numeric(length(returns.sp500))
-# Loop through each observation in the S&P500 returns
-for (i in 1:length(returns.sp500)) {
-  # Check if the date of the ith observation falls within any crash interval
-  if (date.in.crashes(index(returns.sp500)[i], market.crashes)) {
-    dummy.variable[i] <- 0  # If it does, set dummy variable to 0
-  } else {
-    dummy.variable[i] <- 1  # Otherwise, set dummy variable to 1
-  }
-}
-View(as.matrix(dummy))
-HM.regression.mutualfund.dummy <- lm(excess.return.mutualfunds ~ excess.return.market + HM.second.term + dummy, data = returns)
-HM.regression.CTA.dummy        <- lm(excess.return.CTA ~ excess.return.market + HM.second.term + dummy, data = returns)
-HM.regression.trend.dummy      <- lm(excess.return.trend ~ excess.return.market + HM.second.term + dummy, data = returns)
-regressions.HM.dummy           <- list(HM.regression.mutualfund.dummy, HM.regression.CTA.dummy, HM.regression.trend.dummy)
-stargazerRegression(regressions.HM.dummy, fileDirectory = getwd(), fileName = "Henriksson and Merton Test - Dummy")
 
 # ----------------------------------------------------------QUESTION 3---------------------------------------------------------------------------
-# Treynor-Mazuy and Henrikkson-Merton test for market timing ability when using dummy variable that is 0 for the six largest price declines during the sample period
-
-
 
 MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
-
+  
 { # @author Andrii Babii, Peter Carl
   
   # FUNCTION
@@ -177,22 +139,23 @@ MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
   {
     switch(method,
            "HM" = { 
-             intervals <- list(
-               c("2015-08-19", "2015-08-26"),
-               c("2015-12-30", "2016-02-11"),
-               c("2018-01-29", "2018-04-02"),
-               c("2018-10-04", "2018-12-24"),
-               c("2020-02-20", "2020-03-23"),
-               c("2021-12-28", "2022-10-12")
-             )
-             
-             for (i in 1:length(intervals)) {
-               start_date <- intervals[[i]][1]
-               end_date <- intervals[[i]][2]
-               if (any(xRb[,1] >= start_date & xRb[,1] <= end_date)) {
-                 xRb[xRb[,1] >= start_date & xRb[,1] <= end_date, -1] <- 0
+             dates_1 <- seq(as.Date("2015-08-19"), as.Date("2015-08-26"),by="day")
+             dates_2<- seq(as.Date("2015-12-30"), as.Date("2016-02-11"),by="day")
+             dates_3 <- seq(as.Date("2018-01-29"), as.Date("2018-04-02"), by= "day")
+             dates_4 <- seq(as.Date("2018-10-04"), as.Date("2018-12-24"), by ="day")
+             dates_5 <-seq(as.Date("2020-02-20"), as.Date("2020-03-23"), by = "day")
+             dates_6 <-seq(as.Date("2021-12-28"), as.Date("2022-10-12"), by= "day")
+             all_dates <- c(dates_1,dates_2,dates_3,dates_4,dates_5,dates_6)
+             v <- gsub(x=index(xRb),pattern=" CEST",replacement="",fixed=T)
+        
+             for(i in 1:nrow(xRb)){
+               for(j in 1:length(all_dates)){
+                 
+                 if (all_dates[j]==v[i]) {
+                   xRb[index(xRb)[i],1] <- 0
+                 }
+                }
                }
-             }
              S = xRb > 0
            },
            "TM" = { S = xRb }
@@ -202,31 +165,16 @@ MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
     R = merge(xRa, xRb, xRb*S)
     R.df = as.data.frame(R)
     model = lm(R.df[, 1] ~ 1 + ., data = R.df[, -1])
-    return(coef(model))
+    return(model)
   }
+  mt(xRa, xRb)
   
-  result = apply(pairs, 1, FUN = function(n, xRa, xRb) 
-    mt(xRa[, n[1]], xRb[, 1]), xRa = xRa, xRb = xRb)
-  result = t(result)
-  
-  if (ncol(Rb) > 1){
-    for (i in 2:ncol(xRb)){
-      res = apply(pairs, 1, FUN = function(n, xRa, xRb) 
-        mt(xRa[, n[1]], xRb[, i]), xRa = xRa, xRb = xRb)
-      res = t(res)
-      result = rbind(result, res)
-    }
-  }
-  
-  rownames(result) = paste(rep(colnames(Ra), ncol(Rb)), "to",  rep(colnames(Rb), each = ncol(Ra)))
-  colnames(result) = c("Alpha", "Beta", "Gamma")
-  return(result)
 }
-merged.returns <- merge(returns.trend,returns.CTA,returns.mutualfundindex)
-TM.adapted <- MarketTimingAdapted(merged.returns, as.xts(returns)[,2], risk_free, method = "TM")
-# View(TM.adapted)
-HM.adapted <- MarketTimingAdapted(merged.returns,as.xts(returns)[,2], risk_free, method = "HM")
-View(HM.adapted)
+HM.regression.adapted.mutfund <- MarketTimingAdapted(returns.mutualfundindex,as.xts(returns)[,2], risk_free, method = "HM")
+HM.regression.adapted.CTA <- MarketTimingAdapted(returns.CTA,as.xts(returns)[,2], risk_free, method = "HM")
+HM.regression.adapted.trend <- MarketTimingAdapted(returns.trend,as.xts(returns)[,2], risk_free, method = "HM")
+regressions.HM.adapted  <- list(HM.regression.adapted.mutfund, HM.regression.adapted.CTA, HM.regression.adapted.trend)
+stargazerRegression(regressions.HM.adapted, fileDirectory = getwd(), fileName = "Henriksson and Merton Test")
 
 # ----------------------------------------------------------QUESTION 4---------------------------------------------------------------------------
 # Dual Moving Average Crossover Strategy, MA of 20 and 100 days 
@@ -249,26 +197,6 @@ print(strategy.performance)
 performanceSP500 <- table.AnnualizedReturns(clean_data)
 print(performanceSP500)
 
-
-# -----------------------------------------------------------------------------------------------------------------------------------------------
-# ------------------------------------------------------------PART 2-----------------------------------------------------------------------------
-# -----------------------------------------------------------------------------------------------------------------------------------------------
-# ----------------------------------------------------------QUESTION 1---------------------------------------------------------------------------
-# Calculate for the European stock market the risk adjusted performance of cross sectional momentum strategy following the approach by Jegadeesh and Titman (1993)
-# Transaction costs
-Europe.portfolio <- read_xlsx("data_momentum.xlsx", sheet = "Europe portfolio")
-EU.returns <- CalculateReturns(Europe.portfolio)
-EU.returns <- EU.returns[(-1),]
-formation.period.returns <- rollapplyr(EU.returns, width = 126, FUN = function(x) prod(1 + x) - 1, by.column = TRUE, align = "right")
-formation.period.ranks <- apply(formation.period.returns, 2, rank)
-winners <- colnames(formation.period.ranks)[formation.period.ranks <= 10]
-losers <- colnames(formation.period.ranks)[formation.period.ranks >= (ncol(formation.period.ranks) - 9)]
-
-winner.portfolio <- EU.returns[, winners]
-loser.portfolio <- EU.returns[, losers]
-transaction.cost <- 0.005
-winner.portfolio <- winner.portfolio * (1 - transaction.cost)
-loser.portfolio <- loser.portfolio * (1 + transaction.cost)
 
 
 
