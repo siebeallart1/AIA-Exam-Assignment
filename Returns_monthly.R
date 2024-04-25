@@ -120,18 +120,10 @@ stargazer(TM.regression.mutualfund, TM.regression.CTA, TM.regression.trend, titl
 
 MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
   
-{ # @author Andrii Babii, Peter Carl
-  
-  # FUNCTION
-  
-  Ra = checkData(Ra)
+{ Ra = checkData(Ra)
   Rb = checkData(Rb)
   if (!is.null(dim(Rf))) 
     Rf = checkData(Rf)
-  Ra.ncols = NCOL(Ra)
-  Rb.ncols = NCOL(Rb)
-  pairs = expand.grid(1:Ra.ncols, 1)
-  method = method[1]
   xRa = Return.excess(Ra, Rf)
   xRb = Return.excess(Rb, Rf)
   
@@ -174,7 +166,7 @@ HM.regression.adapted.mutfund <- MarketTimingAdapted(returns.mutualfundindex,as.
 HM.regression.adapted.CTA <- MarketTimingAdapted(returns.CTA,as.xts(returns)[,2], risk_free, method = "HM")
 HM.regression.adapted.trend <- MarketTimingAdapted(returns.trend,as.xts(returns)[,2], risk_free, method = "HM")
 regressions.HM.adapted  <- list(HM.regression.adapted.mutfund, HM.regression.adapted.CTA, HM.regression.adapted.trend)
-stargazerRegression(regressions.HM.adapted, fileDirectory = getwd(), fileName = "Henriksson and Merton Test")
+stargazerRegression(regressions.HM.adapted, fileDirectory = getwd(), fileName = "Henriksson and Merton Test adapted")
 
 # ----------------------------------------------------------QUESTION 4---------------------------------------------------------------------------
 # Dual Moving Average Crossover Strategy, MA of 20 and 100 days 
