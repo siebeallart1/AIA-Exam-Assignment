@@ -1,3 +1,4 @@
+rm(list = ls())
 #install.packages("readxl") # doe dit eenmailg
 library(readxl)
 library(PerformanceAnalytics)
@@ -5,8 +6,8 @@ library(PortfolioAnalytics)
 library(stargazer)
 library(TTR)
 library(stats)
-install.packages("sandwich")
-install.packages("EconometricsUGent")
+# install.packages("sandwich")
+# install.packages("EconometricsUGent")
 library(EconometricsUGent)
 data_funds <- read_xlsx("data_funds.xlsx", sheet = "Sheet 1")
 SocGen <- read_xlsx("data_funds.xlsx", sheet = "SocGen")
@@ -80,6 +81,7 @@ risk_free10   <-(0.00182+0.02565)/2  #average risk free rate from 31 dec. 2021 t
 risk_free11   <-(0.02565+0.02031)/2  #average risk free rate from 31 dec. 2022 till 31 dec. 2023
 
 risk_free<-sum(risk_free1,risk_free2,risk_free3,risk_free4,risk_free5,risk_free6,risk_free7,risk_free8, risk_free9,risk_free10, risk_free11) /11 #average risk free rate from 2012-12-31 till 2023-12-31
+risk_free <- 0.00005
 #Market timing abilities
 
 # with MarketTiming
@@ -100,24 +102,28 @@ HM.second.term               <- pmax(0, excess.return.market)          # Gain an
 TM.regression.mutualfund <- lm(excess.return.mutualfunds ~ excess.return.market + excess.return.market.squared, data = returns)
 TM.regression.CTA        <- lm(excess.return.CTA ~ excess.return.market + excess.return.market.squared, data = returns)
 TM.regression.trend      <- lm(excess.return.trend ~ excess.return.market + excess.return.market.squared, data = returns)
+regressions.TM           <- list(TM.regression.mutualfund, TM.regression.CTA, TM.regression.trend)
+stargazerRegression(regressions.TM, fileDirectory = getwd(), fileName = "TM test")
 # summary(TM.regression.mutualfund)
 # summary(TM.regression.CTA)
 # summary(TM.regression.trend)
-file.path <- "Treynor-Mazuy_Test.html"
-stargazer(TM.regression.mutualfund, TM.regression.CTA, TM.regression.trend, title = "Treynor-Mazuy", 
-          column.labels = c("HM Mutual Fund", "HM CTA", "HM Trend"), 
-          out = file.path, header = FALSE, style = "default")
+# file.path <- "Treynor-Mazuy_Test.html"
+# stargazer(TM.regression.mutualfund, TM.regression.CTA, TM.regression.trend, title = "Treynor-Mazuy", 
+#           column.labels = c("HM Mutual Fund", "HM CTA", "HM Trend"), 
+#           out = file.path, header = FALSE, style = "default")
 
 HM.regression.mutualfund <- lm(excess.return.mutualfunds ~ excess.return.market + HM.second.term, data = returns)
 HM.regression.CTA        <- lm(excess.return.CTA ~ excess.return.market + HM.second.term, data = returns)
 HM.regression.trend      <- lm(excess.return.trend ~ excess.return.market + HM.second.term, data = returns)
+regressions.HM           <- list(HM.regression.mutualfund, HM.regression.CTA, HM.regression.trend)
+stargazerRegression(regressions.HM, fileDirectory = getwd(), fileName = "HM test")
 # summary(HM.regression.mutualfund)
 # summary(HM.regression.CTA)
 # summary(HM.regression.trend)
-file.path <- "Merton-Henriksson_Test.html"
-stargazer(TM.regression.mutualfund, TM.regression.CTA, TM.regression.trend, title = "Merton-Henriksson", 
-          column.labels = c("HM Mutual Fund", "HM CTA", "HM Trend"), 
-          out = file.path, header = FALSE, style = "default")
+# file.path <- "Merton-Henriksson_Test.html"
+# stargazer(TM.regression.mutualfund, TM.regression.CTA, TM.regression.trend, title = "Merton-Henriksson", 
+#           column.labels = c("HM Mutual Fund", "HM CTA", "HM Trend"), 
+#           out = file.path, header = FALSE, style = "default")
 
 # Define the intervals for the largest price declines/crashes on the S&P500 index
 market.crashes <- list(
@@ -230,11 +236,7 @@ View(HM.adapted)
 
 # ----------------------------------------------------------QUESTION 4---------------------------------------------------------------------------
 # Dual Moving Average Crossover Strategy, MA of 20 and 100 days 
-# Calculate the moving averages
-#MA.20 <- SMA(returns, n = 20)
-#MA.100 <- SMA(returns, n = 100)
-#signals <- ifelse(MA.20 > MA.100, 1, -1) # Buy signal when MA-20 > MA-100, sell signal otherwise 
-# Dual Moving Average Crossover Strategy, MA of 20 and 100 days 
+
 # Calculate the moving averages
 sp500.index <- as.matrix(data_funds[,2])
 MA.20 <- SMA(sp500.index, n = 20)
