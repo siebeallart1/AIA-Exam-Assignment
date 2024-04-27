@@ -136,6 +136,7 @@ stargazerRegression(regressions.HM, fileDirectory = getwd(), fileName = "HM test
 
 # ----------------------------------------------------------QUESTION 3---------------------------------------------------------------------------
 
+<<<<<<< HEAD
 # MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
 #   
 # { # @author Andrii Babii, Peter Carl
@@ -193,6 +194,57 @@ stargazerRegression(regressions.HM, fileDirectory = getwd(), fileName = "HM test
 # HM.regression.adapted.trend <- MarketTimingAdapted(returns.trend,as.xts(returns)[,2], risk_free, method = "HM")
 # regressions.HM.adapted  <- list(HM.regression.adapted.mutfund, HM.regression.adapted.CTA, HM.regression.adapted.trend)
 # stargazerRegression(regressions.HM.adapted, fileDirectory = getwd(), fileName = "Henriksson and Merton Test")
+=======
+MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
+  
+{ Ra = checkData(Ra)
+  Rb = checkData(Rb)
+  if (!is.null(dim(Rf))) 
+    Rf = checkData(Rf)
+  xRa = Return.excess(Ra, Rf)
+  xRb = Return.excess(Rb, Rf)
+  
+  mt <- function (xRa, xRb)
+  {
+    switch(method,
+           "HM" = { 
+             dates_1 <- seq(as.Date("2015-08-19"), as.Date("2015-08-26"),by="day")
+             dates_2<- seq(as.Date("2015-12-30"), as.Date("2016-02-11"),by="day")
+             dates_3 <- seq(as.Date("2018-01-29"), as.Date("2018-04-02"), by= "day")
+             dates_4 <- seq(as.Date("2018-10-04"), as.Date("2018-12-24"), by ="day")
+             dates_5 <-seq(as.Date("2020-02-20"), as.Date("2020-03-23"), by = "day")
+             dates_6 <-seq(as.Date("2021-12-28"), as.Date("2022-10-12"), by= "day")
+             all_dates <- c(dates_1,dates_2,dates_3,dates_4,dates_5,dates_6)
+             v <- gsub(x=index(xRb),pattern=" CEST",replacement="",fixed=T)
+        
+             for(i in 1:nrow(xRb)){
+               for(j in 1:length(all_dates)){
+                 
+                 if (all_dates[j]==v[i]) {
+                   xRb[index(xRb)[i],1] <- 0
+                 }
+                }
+               }
+             S = xRb > 0
+           },
+           "TM" = { S = xRb }
+    )
+    
+    
+    R = merge(xRa, xRb, xRb*S)
+    R.df = as.data.frame(R)
+    model = lm(R.df[, 1] ~ 1 + ., data = R.df[, -1])
+    return(model)
+  }
+  mt(xRa, xRb)
+  
+}
+HM.regression.adapted.mutfund <- MarketTimingAdapted(returns.mutualfundindex,as.xts(returns)[,2], risk_free, method = "HM")
+HM.regression.adapted.CTA <- MarketTimingAdapted(returns.CTA,as.xts(returns)[,2], risk_free, method = "HM")
+HM.regression.adapted.trend <- MarketTimingAdapted(returns.trend,as.xts(returns)[,2], risk_free, method = "HM")
+regressions.HM.adapted  <- list(HM.regression.adapted.mutfund, HM.regression.adapted.CTA, HM.regression.adapted.trend)
+stargazerRegression(regressions.HM.adapted, fileDirectory = getwd(), fileName = "Henriksson and Merton Test adapted")
+>>>>>>> 91c5aa992074ba61cfa42d28345af78dccadb3fb
 
 # ----------------------------------------------------------QUESTION 4---------------------------------------------------------------------------
 # Dual Moving Average Crossover Strategy, MA of 20 and 100 days 
