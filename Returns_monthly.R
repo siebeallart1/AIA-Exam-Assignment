@@ -26,7 +26,7 @@ date.end   <- as.Date("2023-12-29")
 # ----------------------------------------------------------QUESTION 1---------------------------------------------------------------------------
 # Calculate the returns of an equally weighted mutual fund index, consisting of the ten mutual funds. 
 # Compare the performance of the S&P500, the self-constructed mutual fund index and the two CTA indices.
-
+str(data_funds)
 #Calculate the returns 
 returns <- CalculateReturns(data_funds) # compounded daily returns of all assets
 returns <- returns[(-1),] # removal of the first row 
@@ -51,6 +51,18 @@ kurt <- apply(overall.returns, 2, kurtosis)
 evaluation <- rbind(performance, Skewness = skew, Kurtosis = kurt)
 stargazer(evaluation, type = "text", summary = FALSE)
 chart.CumReturns(overall.returns, wealth.index = TRUE, legend.loc = "topleft", colorset = c("darkgreen", "red", "blue", "gold"))
+
+returns.oilcrisis <- overall.returns["2015-11-01/2016-04-01"]
+chart.Drawdown(returns.oilcrisis, legend.loc = "bottomleft", colorset = c("darkgreen", "red", "blue", "gold"))
+title('Oil Crisis Drawdown')
+
+returns.VIX <- overall.returns["2018-10-01/2019-04-01"]
+chart.Drawdown(returns.VIX, legend.loc = "bottomleft", colorset = c("darkgreen", "red", "blue", "gold"))
+title('VIX Volatility Drawdown')
+
+returns.covid <- overall.returns["2020-01-01/2020-06-01"]
+chart.Drawdown(returns.covid, legend.loc = "bottomleft", colorset = c("darkgreen", "red", "blue", "gold"))
+title('COVID-19 Drawdown')
 
 # # Plot monthly returns
 # plot.xts(returns, legend.loc = "topleft")
@@ -82,9 +94,9 @@ risk_free <- 0.00005
 
 # with MarketTiming
 TM <- MarketTiming(as.xts(returns),as.xts(returns)[,2], risk_free, method = "TM")
-View(TM)
+# View(TM)
 HM <- MarketTiming(as.xts(returns),as.xts(returns)[,2], risk_free, method = "HM")
-View(HM)
+# View(HM)
 
 #manually
 #Portfolio excess return
@@ -124,63 +136,63 @@ stargazerRegression(regressions.HM, fileDirectory = getwd(), fileName = "HM test
 
 # ----------------------------------------------------------QUESTION 3---------------------------------------------------------------------------
 
-MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
-  
-{ # @author Andrii Babii, Peter Carl
-  
-  # FUNCTION
-  
-  Ra = checkData(Ra)
-  Rb = checkData(Rb)
-  if (!is.null(dim(Rf))) 
-    Rf = checkData(Rf)
-  Ra.ncols = NCOL(Ra)
-  Rb.ncols = NCOL(Rb)
-  pairs = expand.grid(1:Ra.ncols, 1)
-  method = method[1]
-  xRa = Return.excess(Ra, Rf)
-  xRb = Return.excess(Rb, Rf)
-  
-  mt <- function (xRa, xRb)
-  {
-    switch(method,
-           "HM" = { 
-             dates_1 <- seq(as.Date("2015-08-19"), as.Date("2015-08-26"),by="day")
-             dates_2<- seq(as.Date("2015-12-30"), as.Date("2016-02-11"),by="day")
-             dates_3 <- seq(as.Date("2018-01-29"), as.Date("2018-04-02"), by= "day")
-             dates_4 <- seq(as.Date("2018-10-04"), as.Date("2018-12-24"), by ="day")
-             dates_5 <-seq(as.Date("2020-02-20"), as.Date("2020-03-23"), by = "day")
-             dates_6 <-seq(as.Date("2021-12-28"), as.Date("2022-10-12"), by= "day")
-             all_dates <- c(dates_1,dates_2,dates_3,dates_4,dates_5,dates_6)
-             v <- gsub(x=index(xRb),pattern=" CEST",replacement="",fixed=T)
-        
-             for(i in 1:nrow(xRb)){
-               for(j in 1:length(all_dates)){
-                 
-                 if (all_dates[j]==v[i]) {
-                   xRb[index(xRb)[i],1] <- 0
-                 }
-                }
-               }
-             S = xRb > 0
-           },
-           "TM" = { S = xRb }
-    )
-    
-    
-    R = merge(xRa, xRb, xRb*S)
-    R.df = as.data.frame(R)
-    model = lm(R.df[, 1] ~ 1 + ., data = R.df[, -1])
-    return(model)
-  }
-  mt(xRa, xRb)
-  
-}
-HM.regression.adapted.mutfund <- MarketTimingAdapted(returns.mutualfundindex,as.xts(returns)[,2], risk_free, method = "HM")
-HM.regression.adapted.CTA <- MarketTimingAdapted(returns.CTA,as.xts(returns)[,2], risk_free, method = "HM")
-HM.regression.adapted.trend <- MarketTimingAdapted(returns.trend,as.xts(returns)[,2], risk_free, method = "HM")
-regressions.HM.adapted  <- list(HM.regression.adapted.mutfund, HM.regression.adapted.CTA, HM.regression.adapted.trend)
-stargazerRegression(regressions.HM.adapted, fileDirectory = getwd(), fileName = "Henriksson and Merton Test")
+# MarketTimingAdapted <- function (Ra, Rb, Rf = 0, method = c("TM", "HM"))
+#   
+# { # @author Andrii Babii, Peter Carl
+#   
+#   # FUNCTION
+#   
+#   Ra = checkData(Ra)
+#   Rb = checkData(Rb)
+#   if (!is.null(dim(Rf))) 
+#     Rf = checkData(Rf)
+#   Ra.ncols = NCOL(Ra)
+#   Rb.ncols = NCOL(Rb)
+#   pairs = expand.grid(1:Ra.ncols, 1)
+#   method = method[1]
+#   xRa = Return.excess(Ra, Rf)
+#   xRb = Return.excess(Rb, Rf)
+#   
+#   mt <- function (xRa, xRb)
+#   {
+#     switch(method,
+#            "HM" = { 
+#              dates_1 <- seq(as.Date("2015-08-19"), as.Date("2015-08-26"),by="day")
+#              dates_2<- seq(as.Date("2015-12-30"), as.Date("2016-02-11"),by="day")
+#              dates_3 <- seq(as.Date("2018-01-29"), as.Date("2018-04-02"), by= "day")
+#              dates_4 <- seq(as.Date("2018-10-04"), as.Date("2018-12-24"), by ="day")
+#              dates_5 <-seq(as.Date("2020-02-20"), as.Date("2020-03-23"), by = "day")
+#              dates_6 <-seq(as.Date("2021-12-28"), as.Date("2022-10-12"), by= "day")
+#              all_dates <- c(dates_1,dates_2,dates_3,dates_4,dates_5,dates_6)
+#              v <- gsub(x=index(xRb),pattern=" CEST",replacement="",fixed=T)
+#         
+#              for(i in 1:nrow(xRb)){
+#                for(j in 1:length(all_dates)){
+#                  
+#                  if (all_dates[j]==v[i]) {
+#                    xRb[index(xRb)[i],1] <- 0
+#                  }
+#                 }
+#                }
+#              S = xRb > 0
+#            },
+#            "TM" = { S = xRb }
+#     )
+#     
+#     
+#     R = merge(xRa, xRb, xRb*S)
+#     R.df = as.data.frame(R)
+#     model = lm(R.df[, 1] ~ 1 + ., data = R.df[, -1])
+#     return(model)
+#   }
+#   mt(xRa, xRb)
+#   
+# }
+# HM.regression.adapted.mutfund <- MarketTimingAdapted(returns.mutualfundindex,as.xts(returns)[,2], risk_free, method = "HM")
+# HM.regression.adapted.CTA <- MarketTimingAdapted(returns.CTA,as.xts(returns)[,2], risk_free, method = "HM")
+# HM.regression.adapted.trend <- MarketTimingAdapted(returns.trend,as.xts(returns)[,2], risk_free, method = "HM")
+# regressions.HM.adapted  <- list(HM.regression.adapted.mutfund, HM.regression.adapted.CTA, HM.regression.adapted.trend)
+# stargazerRegression(regressions.HM.adapted, fileDirectory = getwd(), fileName = "Henriksson and Merton Test")
 
 # ----------------------------------------------------------QUESTION 4---------------------------------------------------------------------------
 # Dual Moving Average Crossover Strategy, MA of 20 and 100 days 
@@ -188,16 +200,28 @@ stargazerRegression(regressions.HM.adapted, fileDirectory = getwd(), fileName = 
 # Calculate the moving averages
 sp500.index <- as.matrix(data_funds[,2])
 MA.20 <- SMA(sp500.index, n = 20)
+MA.20 <- MA.20[-c(1:98)] 
+# mean(as.matrix(data_funds[1:20, 2])) check whether the SMA function calculates the moving averages correctly 
 MA.100 <- SMA(sp500.index, n = 100)
+MA.100 <- MA.100[-c(1:98)]
 signals <- ifelse(MA.20 > MA.100, 1, -1)
 signals <- signals[-1]
 clean_data <- returns.sp500[-c(1:98), ]
-strategy.returns <- signals * returns.sp500
-na.omit(strategy.returns)
+clean_signals <- signals[-c(1:98)]
+strategy.returns <- clean_signals * clean_data
+# na.omit(strategy.returns)
 strategy.performance <- table.AnnualizedReturns(strategy.returns)
 print(strategy.performance)
 performanceSP500 <- table.AnnualizedReturns(clean_data)
 print(performanceSP500)
+
+timestamps <- data_funds$Timestamp
+MA20.returns <- CalculateReturns(xts(MA.20, order.by = timestamps[-c(1:98)]))
+MA100.returns <- CalculateReturns(xts(MA.100, order.by = timestamps[-c(1:98)]))
+MA.returns <- merge(returns.sp500, MA20.returns, MA100.returns, strategy.returns)
+colnames(MA.returns) <- c("S&P500", "MA 20", "MA 100", "Dual Moving Avg Crossover")
+chart.CumReturns(MA.returns, wealth.index = TRUE, legend.loc = "topleft", colorset = c("darkgreen", "red", "blue", "gold"))
+
 
 
 
